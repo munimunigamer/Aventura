@@ -212,7 +212,6 @@
       locations: summary.locations,
       plotThreads: summary.plotThreads,
       emotionalTone: summary.emotionalTone,
-      arcId: null,
       createdAt: Date.now(),
     };
 

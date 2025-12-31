@@ -136,9 +136,6 @@ export interface Chapter {
   plotThreads: string[];
   emotionalTone: string | null;
 
-  // Hierarchy (for future arc support)
-  arcId: string | null;
-
   createdAt: number;
 }
 

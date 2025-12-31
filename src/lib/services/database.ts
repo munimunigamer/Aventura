@@ -432,8 +432,8 @@ class DatabaseService {
       `INSERT INTO chapters (
         id, story_id, number, title, start_entry_id, end_entry_id, entry_count,
         summary, keywords, characters, locations, plot_threads, emotional_tone,
-        arc_id, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         chapter.id,
         chapter.storyId,
@@ -448,7 +448,6 @@ class DatabaseService {
         JSON.stringify(chapter.locations),
         JSON.stringify(chapter.plotThreads),
         chapter.emotionalTone,
-        chapter.arcId,
         chapter.createdAt,
       ]
     );
@@ -466,7 +465,6 @@ class DatabaseService {
     if (updates.locations !== undefined) { setClauses.push('locations = ?'); values.push(JSON.stringify(updates.locations)); }
     if (updates.plotThreads !== undefined) { setClauses.push('plot_threads = ?'); values.push(JSON.stringify(updates.plotThreads)); }
     if (updates.emotionalTone !== undefined) { setClauses.push('emotional_tone = ?'); values.push(updates.emotionalTone); }
-    if (updates.arcId !== undefined) { setClauses.push('arc_id = ?'); values.push(updates.arcId); }
 
     if (setClauses.length === 0) return;
     values.push(id);
@@ -680,7 +678,6 @@ class DatabaseService {
       locations: row.locations ? JSON.parse(row.locations) : [],
       plotThreads: row.plot_threads ? JSON.parse(row.plot_threads) : [],
       emotionalTone: row.emotional_tone,
-      arcId: row.arc_id,
       createdAt: row.created_at,
     };
   }
