@@ -21,24 +21,27 @@ function log(...args: any[]) {
 }
 
 export interface EntryRetrievalConfig {
-  /** Threshold for triggering LLM selection (Tier 3) */
+  /** Minimum entries to trigger LLM selection (set to 0 to always use LLM) */
   llmThreshold: number;
-  /** Maximum entries to include from Tier 3 */
+  /** Maximum entries to include from Tier 3 (0 = unlimited) */
   maxTier3Entries: number;
-  /** Enable LLM selection for large entry counts */
+  /** Enable LLM selection */
   enableLLMSelection: boolean;
   /** Number of recent story entries to check for matching */
   recentEntriesCount: number;
   /** Model to use for Tier 3 selection */
   tier3Model: string;
+  /** Always use LLM to select ALL relevant entries (ignores threshold) */
+  alwaysUseLLM: boolean;
 }
 
 export const DEFAULT_ENTRY_RETRIEVAL_CONFIG: EntryRetrievalConfig = {
-  llmThreshold: 30,
-  maxTier3Entries: 10,
+  llmThreshold: 0, // Always run LLM selection
+  maxTier3Entries: 0, // No limit - select all relevant
   enableLLMSelection: true,
   recentEntriesCount: 5,
   tier3Model: 'x-ai/grok-4.1-fast',
+  alwaysUseLLM: true, // Always use LLM for comprehensive selection
 };
 
 export interface RetrievedEntry {
@@ -67,6 +70,9 @@ export class EntryRetrievalService {
 
   /**
    * Retrieve relevant entries using tiered injection.
+   *
+   * Tier 1: Always injected (injection.mode === 'always' or state-based conditions)
+   * Tier 2/3: LLM selects ALL relevant entries from remaining pool
    */
   async getRelevantEntries(
     entries: Entry[],
@@ -96,24 +102,19 @@ export class EntryRetrievalService {
     // Get IDs already in tier 1
     const tier1Ids = new Set(tier1.map(e => e.entry.id));
 
-    // Tier 2: Keyword/name matching
-    const tier2 = this.getTier2Entries(entries, userInput, recentStoryEntries, tier1Ids);
-    log('Tier 2 entries:', tier2.length);
+    // All remaining entries go to LLM for selection
+    const remainingEntries = entries.filter(e => !tier1Ids.has(e.id) && e.injection.mode !== 'never');
 
-    // Get IDs in tier 1 + 2
-    const tier12Ids = new Set([...tier1Ids, ...tier2.map(e => e.entry.id)]);
-
-    // Tier 3: LLM selection (conditional)
+    // Tier 2/3: LLM selection for ALL remaining entries
+    let tier2: RetrievedEntry[] = [];
     let tier3: RetrievedEntry[] = [];
-    const remainingEntries = entries.filter(e => !tier12Ids.has(e.id));
 
-    if (
-      this.config.enableLLMSelection &&
-      remainingEntries.length > this.config.llmThreshold &&
-      this.provider
-    ) {
-      tier3 = await this.getTier3Entries(remainingEntries, userInput, recentStoryEntries);
-      log('Tier 3 entries:', tier3.length);
+    if (this.config.enableLLMSelection && remainingEntries.length > 0 && this.provider) {
+      log('Sending all remaining entries to LLM for selection:', remainingEntries.length);
+      const llmSelected = await this.getLLMSelectedEntries(remainingEntries, userInput, recentStoryEntries);
+      // Put LLM-selected entries in tier 2 (tier 3 reserved for future use if needed)
+      tier2 = llmSelected;
+      log('LLM selected entries:', tier2.length);
     }
 
     // Combine and sort by priority
@@ -196,92 +197,52 @@ export class EntryRetrievalService {
   }
 
   /**
-   * Tier 2: Keyword and name matching.
-   * Matches entry names, aliases, and keywords against user input and recent messages.
+   * LLM-based selection for all non-Tier-1 entries.
+   * Selects ALL relevant entries based on the current context.
    */
-  private getTier2Entries(
-    entries: Entry[],
-    userInput: string,
-    recentStoryEntries: StoryEntry[],
-    excludeIds: Set<string>
-  ): RetrievedEntry[] {
-    const result: RetrievedEntry[] = [];
-
-    // Build search text from user input and recent story entries
-    const recentContent = recentStoryEntries
-      .slice(-this.config.recentEntriesCount)
-      .map(e => e.content)
-      .join(' ');
-    const searchText = (userInput + ' ' + recentContent).toLowerCase();
-
-    for (const entry of entries) {
-      if (excludeIds.has(entry.id)) continue;
-      if (entry.injection.mode === 'never') continue;
-
-      // Check if name matches
-      const nameMatch = this.textMatches(entry.name, searchText);
-
-      // Check if any alias matches
-      const aliasMatch = entry.aliases.some(alias => this.textMatches(alias, searchText));
-
-      // Check if any keyword matches (for keyword mode entries)
-      const keywordMatch = entry.injection.mode === 'keyword' &&
-        entry.injection.keywords.some(kw => this.textMatches(kw, searchText));
-
-      if (nameMatch || aliasMatch || keywordMatch) {
-        result.push({
-          entry,
-          tier: 2,
-          priority: entry.injection.priority + (nameMatch ? 20 : 0) + (aliasMatch ? 10 : 0),
-          matchReason: nameMatch ? 'name match' : aliasMatch ? 'alias match' : 'keyword match',
-        });
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Tier 3: LLM-based selection for remaining entries.
-   */
-  private async getTier3Entries(
-    remainingEntries: Entry[],
+  private async getLLMSelectedEntries(
+    availableEntries: Entry[],
     userInput: string,
     recentStoryEntries: StoryEntry[]
   ): Promise<RetrievedEntry[]> {
-    if (!this.provider || remainingEntries.length === 0) return [];
+    if (!this.provider || availableEntries.length === 0) return [];
 
-    // Build context for LLM
+    // Build context for LLM - show more of the recent story
     const recentContent = recentStoryEntries
-      .slice(-3)
-      .map(e => `[${e.type}]: ${e.content.substring(0, 200)}...`)
+      .slice(-5)
+      .map(e => {
+        const prefix = e.type === 'user_action' ? '[ACTION]' : '[NARRATION]';
+        return `${prefix}: ${e.content.substring(0, 300)}`;
+      })
+      .join('\n\n');
+
+    // Build entry list with IDs for reliable selection
+    const entryList = availableEntries
+      .map(e => `- ID:${e.id} | [${e.type.toUpperCase()}] "${e.name}": ${e.description.substring(0, 200)}${e.description.length > 200 ? '...' : ''}`)
       .join('\n');
 
-    const entrySummaries = remainingEntries
-      .slice(0, 50) // Limit to prevent token overflow
-      .map((e, i) => `${i + 1}. [${e.type}] ${e.name}: ${e.description.substring(0, 150)}`)
-      .join('\n');
+    const prompt = `You are a lorebook retrieval system. Select ALL entries that are relevant to the current narrative context.
 
-    const prompt = `You are selecting which lorebook entries are relevant for the next narrative response.
+## Current Scene
+${recentContent || '(Story just started)'}
 
-CURRENT SCENE:
-${recentContent}
-
-USER'S INPUT:
+## User's Next Action
 "${userInput}"
 
-AVAILABLE ENTRIES:
-${entrySummaries}
+## Available Lorebook Entries
+${entryList}
 
-Which entries (by number) are relevant to the current scene and user input?
-Consider:
-- Characters who might be referenced or affected
-- Locations that might be mentioned
-- Items, factions, or concepts that could be relevant
-- Lore that connects to this moment
+## Task
+Identify ALL entries that should be included in the narrator's context. Be INCLUSIVE - select any entry that:
+- Is directly mentioned or referenced
+- Describes a character who is present or might appear
+- Describes the current or nearby location
+- Contains relevant world-building, lore, or background information
+- Might inform how the narrator should respond
+- Has any connection to the current scene or action
 
-Return a JSON array of numbers for relevant entries. Only include entries that are ACTUALLY relevant.
-Example: [1, 3, 7]
+Return a JSON array of entry IDs (the ID: values) for ALL relevant entries.
+Format: ["id1", "id2", "id3"]
 
 If no entries are relevant, return: []`;
 
@@ -289,35 +250,61 @@ If no entries are relevant, return: []`;
       const response = await this.provider.generateResponse({
         messages: [{ role: 'user', content: prompt }],
         model: this.config.tier3Model,
-        temperature: 0.1,
-        maxTokens: 200,
+        temperature: 0.2,
+        maxTokens: 500, // More tokens for potentially many IDs
       });
 
-      // Parse response
-      const match = response.content.match(/\[[\d,\s]*\]/);
-      if (!match) {
-        log('Failed to parse LLM selection response');
-        return [];
+      log('LLM selection response:', response.content);
+
+      // Parse response - look for JSON array of strings (IDs)
+      let selectedIds: string[] = [];
+
+      // Try to extract JSON array
+      const jsonMatch = response.content.match(/\[[\s\S]*?\]/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed)) {
+            selectedIds = parsed.map(id => String(id).trim());
+          }
+        } catch {
+          log('Failed to parse JSON array, trying line-by-line');
+        }
       }
 
-      const selectedIndices: number[] = JSON.parse(match[0]);
-      const result: RetrievedEntry[] = [];
+      // Fallback: extract IDs mentioned in the response
+      if (selectedIds.length === 0) {
+        const idMatches = response.content.matchAll(/ID:([a-zA-Z0-9_-]+)/g);
+        for (const match of idMatches) {
+          selectedIds.push(match[1]);
+        }
+      }
 
-      for (const idx of selectedIndices) {
-        const entry = remainingEntries[idx - 1]; // 1-indexed in prompt
-        if (entry) {
+      log('Selected IDs:', selectedIds);
+
+      // Map IDs back to entries
+      const result: RetrievedEntry[] = [];
+      const idSet = new Set(selectedIds);
+
+      for (const entry of availableEntries) {
+        if (idSet.has(entry.id)) {
           result.push({
             entry,
-            tier: 3,
-            priority: 30,
+            tier: 2,
+            priority: 50 + entry.injection.priority,
             matchReason: 'LLM selected',
           });
         }
       }
 
-      return result.slice(0, this.config.maxTier3Entries);
+      // Apply max limit if configured (0 = unlimited)
+      if (this.config.maxTier3Entries > 0) {
+        return result.slice(0, this.config.maxTier3Entries);
+      }
+
+      return result;
     } catch (error) {
-      log('Tier 3 LLM selection failed:', error);
+      log('LLM selection failed:', error);
       return [];
     }
   }
