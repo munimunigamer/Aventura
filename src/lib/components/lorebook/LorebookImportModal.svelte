@@ -10,6 +10,7 @@
   } from '$lib/services/lorebookImporter';
   import { database } from '$lib/services/database';
   import { X, Upload, FileJson, Loader2, Check, AlertCircle } from 'lucide-svelte';
+  import { swipe } from '$lib/utils/swipe';
   import type { Entry } from '$lib/types';
 
   let fileInput: HTMLInputElement;
@@ -161,6 +162,11 @@
   function close() {
     ui.closeLorebookImport();
   }
+
+  // Swipe down to dismiss modal on mobile
+  function handleSwipeDown() {
+    close();
+  }
 </script>
 
 <div
@@ -172,13 +178,19 @@
   tabindex="-1"
 >
   <div
-    class="card w-full max-w-lg max-h-[90vh] overflow-hidden"
+    class="card w-full max-w-lg max-h-[90vh] overflow-hidden rounded-b-none sm:rounded-b-xl"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="document"
+    use:swipe={{ onSwipeDown: handleSwipeDown, threshold: 50 }}
   >
+    <!-- Mobile swipe handle indicator -->
+    <div class="sm:hidden flex justify-center pt-2 pb-1">
+      <div class="w-10 h-1 rounded-full bg-surface-600"></div>
+    </div>
+
     <!-- Header -->
-    <div class="flex items-center justify-between border-b border-surface-700 pb-4">
+    <div class="flex items-center justify-between border-b border-surface-700 pb-4 pt-0 sm:pt-0">
       <div class="flex items-center gap-2">
         <Upload class="h-5 w-5 text-accent-400" />
         <h2 class="text-xl font-semibold text-surface-100">Import Lorebook</h2>

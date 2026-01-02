@@ -3,6 +3,7 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { Lightbulb, ArrowRight, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-svelte';
   import type { StorySuggestion } from '$lib/services/ai/suggestions';
+  import { swipe } from '$lib/utils/swipe';
 
   interface Props {
     suggestions: StorySuggestion[];
@@ -29,11 +30,27 @@
     revelation: 'Revelation',
     twist: 'Twist',
   };
+
+  // Swipe handlers for mobile
+  function handleSwipeDown() {
+    if (!collapsed) {
+      collapsed = true;
+    }
+  }
+
+  function handleSwipeUp() {
+    if (collapsed) {
+      collapsed = false;
+    }
+  }
 </script>
 
 {#if story.storyMode === 'creative-writing'}
-  <div class="border-t border-surface-700 pt-3">
-    <!-- Header - always visible, clickable to expand/collapse -->
+  <div
+    class="border-t border-surface-700 pt-3"
+    use:swipe={{ onSwipeDown: handleSwipeDown, onSwipeUp: handleSwipeUp, threshold: 40 }}
+  >
+    <!-- Header - always visible, clickable to expand/collapse. Swipe down to collapse, swipe up to expand -->
     <button
       class="w-full flex items-center justify-between py-1 text-left group"
       onclick={() => collapsed = !collapsed}

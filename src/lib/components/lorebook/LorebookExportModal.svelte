@@ -3,6 +3,7 @@
   import { story } from '$lib/stores/story.svelte';
   import { exportLorebook, getFormatInfo, type ExportFormat } from '$lib/services/lorebookExporter';
   import { X, Download, FileJson, FileText, Check, Loader2 } from 'lucide-svelte';
+  import { swipe } from '$lib/utils/swipe';
 
   let selectedFormat = $state<ExportFormat>('aventura');
   let exportSelected = $state(false);
@@ -49,6 +50,11 @@
   function close() {
     ui.closeLorebookExport();
   }
+
+  // Swipe down to dismiss modal on mobile
+  function handleSwipeDown() {
+    close();
+  }
 </script>
 
 <div
@@ -60,13 +66,19 @@
   tabindex="-1"
 >
   <div
-    class="card w-full max-w-md max-h-[90vh] overflow-hidden"
+    class="card w-full max-w-md max-h-[90vh] overflow-hidden rounded-b-none sm:rounded-b-xl"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="document"
+    use:swipe={{ onSwipeDown: handleSwipeDown, threshold: 50 }}
   >
+    <!-- Mobile swipe handle indicator -->
+    <div class="sm:hidden flex justify-center pt-2 pb-1">
+      <div class="w-10 h-1 rounded-full bg-surface-600"></div>
+    </div>
+
     <!-- Header -->
-    <div class="flex items-center justify-between border-b border-surface-700 pb-4">
+    <div class="flex items-center justify-between border-b border-surface-700 pb-4 pt-0 sm:pt-0">
       <div class="flex items-center gap-2">
         <Download class="h-5 w-5 text-accent-400" />
         <h2 class="text-xl font-semibold text-surface-100">Export Lorebook</h2>

@@ -16,13 +16,28 @@
   ];
 
   function handleSwipeLeft() {
-    ui.toggleSidebar();
+    // Navigate to next tab, or close sidebar if on last tab
+    const currentIndex = tabs.findIndex(t => t.id === ui.sidebarTab);
+    if (currentIndex < tabs.length - 1) {
+      ui.setSidebarTab(tabs[currentIndex + 1].id);
+    } else {
+      // On last tab, swipe left closes sidebar
+      ui.toggleSidebar();
+    }
+  }
+
+  function handleSwipeRight() {
+    // Navigate to previous tab
+    const currentIndex = tabs.findIndex(t => t.id === ui.sidebarTab);
+    if (currentIndex > 0) {
+      ui.setSidebarTab(tabs[currentIndex - 1].id);
+    }
   }
 </script>
 
 <aside
   class="sidebar flex h-full w-[calc(100vw-3rem)] max-w-72 flex-col border-r border-surface-700 sm:w-72"
-  use:swipe={{ onSwipeLeft: handleSwipeLeft, threshold: 50 }}
+  use:swipe={{ onSwipeLeft: handleSwipeLeft, onSwipeRight: handleSwipeRight, threshold: 50 }}
 >
   <!-- Tab navigation -->
   <div class="flex border-b border-surface-700">

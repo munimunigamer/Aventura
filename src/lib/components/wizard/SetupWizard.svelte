@@ -1012,8 +1012,8 @@
                     onclick={expandSetting}
                     disabled={isExpandingSetting}
                   >
-                    <RefreshCw class="h-3 w-3" />
-                    Regenerate
+                    <RefreshCw class="h-3 w-3 {isExpandingSetting ? 'animate-spin' : ''}" />
+                    {isExpandingSetting ? 'Regenerating...' : 'Regenerate'}
                   </button>
                 </div>
               </div>
@@ -1155,7 +1155,7 @@
                       title="Generate a completely new character from scratch"
                     >
                       {#if isGeneratingProtagonist}
-                        <Loader2 class="h-3 w-3 animate-spin" />
+                        <RefreshCw class="h-3 w-3 animate-spin" />
                         Generating...
                       {:else}
                         <RefreshCw class="h-3 w-3" />
@@ -1184,8 +1184,8 @@
                         disabled={isGeneratingProtagonist}
                         title="Generate a different character"
                       >
-                        <RefreshCw class="h-3 w-3" />
-                        Regenerate
+                        <RefreshCw class="h-3 w-3 {isGeneratingProtagonist ? 'animate-spin' : ''}" />
+                        {isGeneratingProtagonist ? 'Regenerating...' : 'Regenerate'}
                       </button>
                     </div>
                   </div>

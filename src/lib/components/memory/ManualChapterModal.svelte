@@ -3,6 +3,7 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { X, ChevronDown, ChevronUp } from 'lucide-svelte';
   import { fade, fly } from 'svelte/transition';
+  import { swipe } from '$lib/utils/swipe';
 
   interface Props {
     onConfirm: (endEntryIndex: number) => void;
@@ -47,6 +48,11 @@
       onClose();
     }
   }
+
+  // Swipe down to dismiss modal on mobile
+  function handleSwipeDown() {
+    onClose();
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -62,12 +68,18 @@
 
 <!-- Modal -->
 <div
-  class="fixed inset-x-2 sm:inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto max-h-[90vh] flex flex-col"
+  class="fixed inset-x-0 sm:inset-x-4 bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-50 max-w-lg mx-auto max-h-[90vh] flex flex-col"
   transition:fly={{ y: 20, duration: 200 }}
+  use:swipe={{ onSwipeDown: handleSwipeDown, threshold: 50 }}
 >
-  <div class="bg-surface-800 rounded-xl shadow-xl overflow-hidden">
+  <div class="bg-surface-800 rounded-t-xl sm:rounded-xl shadow-xl overflow-hidden">
+    <!-- Mobile swipe handle indicator -->
+    <div class="sm:hidden flex justify-center pt-2 pb-1">
+      <div class="w-10 h-1 rounded-full bg-surface-600"></div>
+    </div>
+
     <!-- Header -->
-    <div class="flex items-center justify-between p-4 border-b border-surface-700">
+    <div class="flex items-center justify-between p-4 pt-2 sm:pt-4 border-b border-surface-700">
       <h2 class="text-lg font-semibold text-surface-100">Create Chapter</h2>
       <button
         class="p-1 rounded hover:bg-surface-700 text-surface-400 hover:text-surface-200"
