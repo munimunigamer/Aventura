@@ -209,8 +209,11 @@
       return;
     }
 
-    // Generate chapter summary
-    const summary = await aiService.summarizeChapter(chapterEntries);
+    // Get previous chapters for context
+    const previousChapters = [...story.chapters].sort((a, b) => a.number - b.number);
+
+    // Generate chapter summary with previous chapters as context
+    const summary = await aiService.summarizeChapter(chapterEntries, previousChapters);
 
     // Create the chapter - use database method to handle deletions correctly
     const chapterNumber = await story.getNextChapterNumber();

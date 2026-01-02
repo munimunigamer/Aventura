@@ -6,6 +6,7 @@
   import StoryView from '$lib/components/story/StoryView.svelte';
   import LibraryView from '$lib/components/story/LibraryView.svelte';
   import LorebookView from '$lib/components/lorebook/LorebookView.svelte';
+  import MemoryView from '$lib/components/memory/MemoryView.svelte';
   import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
   import LorebookDebugPanel from '$lib/components/debug/LorebookDebugPanel.svelte';
   import { swipe } from '$lib/utils/swipe';
@@ -64,6 +65,8 @@
         <StoryView />
       {:else if ui.activePanel === 'lorebook' && story.currentStory}
         <LorebookView />
+      {:else if ui.activePanel === 'memory' && story.currentStory}
+        <MemoryView />
       {:else if ui.activePanel === 'library' || !story.currentStory}
         <LibraryView />
       {:else if children}

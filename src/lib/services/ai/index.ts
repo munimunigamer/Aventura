@@ -387,13 +387,33 @@ class AIService {
 
   /**
    * Generate a summary and metadata for a chapter.
+   * @param entries - The entries to summarize
+   * @param previousChapters - Previous chapter summaries for context (optional)
    */
-  async summarizeChapter(entries: StoryEntry[]): Promise<ChapterSummary> {
-    log('summarizeChapter called', { entriesCount: entries.length });
+  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[]): Promise<ChapterSummary> {
+    log('summarizeChapter called', { entriesCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0 });
 
     const provider = this.getProvider();
     const memory = new MemoryService(provider);
-    return await memory.summarizeChapter(entries);
+    return await memory.summarizeChapter(entries, previousChapters);
+  }
+
+  /**
+   * Resummarize an existing chapter (excludes its own old summary and later chapters)
+   * @param chapter - The chapter to resummarize
+   * @param entries - The entries in this chapter
+   * @param allChapters - All chapters in the story
+   */
+  async resummarizeChapter(
+    chapter: Chapter,
+    entries: StoryEntry[],
+    allChapters: Chapter[]
+  ): Promise<ChapterSummary> {
+    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number });
+
+    const provider = this.getProvider();
+    const memory = new MemoryService(provider);
+    return await memory.resummarizeChapter(chapter, entries, allChapters);
   }
 
   /**

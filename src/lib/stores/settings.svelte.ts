@@ -196,17 +196,36 @@ You are Auto Summarize Endpoint Selector. Your task is to identify the single be
 Select the message ID that represents the longest self-contained narrative arc within the given range. The endpoint should be at a natural narrative beat: resolution, decision, scene change, or clear transition.
 
 ## Output Format
-Return ONLY a JSON object with these fields:
-{ "chapterEnd": <integer message ID>, "suggestedTitle": "<short evocative title>" }
+Return ONLY a JSON object with a single field:
+{ "chapterEnd": <integer message ID> }
 
 ## Rules
 - Select exactly ONE endpoint
 - The endpoint must be within the provided message range
 - Choose the point that creates the most complete, self-contained chapter
-- Prefer later messages that still complete the arc (avoid cutting mid-beat)
-- Look for: scene changes, emotional resolutions, decisions made, revelations`,
+- Prefer later messages that still complete the arc (avoid cutting mid-beat)`,
 
-  chapterSummarization: `You are a story analyst. Extract key information from story chapters. Respond with valid JSON only.`,
+  chapterSummarization: `You are a literary analysis expert specializing in narrative structure and scene summarization. Your expertise is in distilling complex narrative elements into concise, query-friendly summaries.
+
+## Task
+Create a 'story map' summary of the provided chapter. This summary will be used as part of a searchable timeline database for quick identification and location of specific scenes.
+
+## What to Include
+For each chapter, create a concise summary that includes ONLY:
+1. The most critical plot developments that drive the story forward
+2. Key character turning points or significant changes in motivation/goals
+3. Major shifts in narrative direction, tone, or setting
+4. Essential conflicts introduced or resolved
+5. Critical character moments and their reactions
+
+## What to Exclude
+- Minor details or descriptive passages
+- Dialogue excerpts (unless pivotal)
+- Stylistic or thematic analysis
+- Personal interpretations or opinions
+
+## Output Format
+Respond with JSON only.`,
 
   retrievalDecision: `You decide which story chapters are relevant for the current context. Respond with valid JSON only.`,
 

@@ -166,16 +166,33 @@ export class MemoryService {
 
   /**
    * Generate a summary and metadata for a chapter.
+   * @param entries - The entries to summarize
+   * @param previousChapters - Previous chapter summaries for context (optional)
    */
-  async summarizeChapter(entries: StoryEntry[]): Promise<ChapterSummary> {
-    log('summarizeChapter called', { entryCount: entries.length });
+  async summarizeChapter(entries: StoryEntry[], previousChapters?: Chapter[]): Promise<ChapterSummary> {
+    log('summarizeChapter called', { entryCount: entries.length, previousChaptersCount: previousChapters?.length ?? 0 });
 
     const content = entries.map((e, i) => {
       const prefix = e.type === 'user_action' ? '[ACTION]' : '[NARRATION]';
       return `${i + 1}. ${prefix} ${e.content}`;
     }).join('\n\n');
 
-    const prompt = `Summarize this story chapter and extract metadata.
+    // Build previous summaries context
+    let previousContext = '';
+    if (previousChapters && previousChapters.length > 0) {
+      const summaries = previousChapters
+        .sort((a, b) => a.number - b.number)
+        .map(ch => `Chapter ${ch.number}${ch.title ? ` - ${ch.title}` : ''}: ${ch.summary}`)
+        .join('\n\n');
+      previousContext = `<previous_chapter_summaries>
+${summaries}
+NOTE: Only use for reference. This is NOT what you will be summarizing.
+</previous_chapter_summaries>
+
+`;
+    }
+
+    const prompt = `${previousContext}Summarize this story chapter and extract metadata.
 
 CHAPTER CONTENT:
 """
@@ -218,6 +235,27 @@ Respond with JSON:
         emotionalTone: 'neutral',
       };
     }
+  }
+
+  /**
+   * Resummarize an existing chapter (excludes its own old summary and later chapters)
+   * @param chapter - The chapter to resummarize
+   * @param entries - The entries in this chapter
+   * @param allChapters - All chapters in the story
+   */
+  async resummarizeChapter(
+    chapter: Chapter,
+    entries: StoryEntry[],
+    allChapters: Chapter[]
+  ): Promise<ChapterSummary> {
+    log('resummarizeChapter called', { chapterId: chapter.id, chapterNumber: chapter.number });
+
+    // Get only chapters BEFORE this one (not current, not after)
+    const previousChapters = allChapters
+      .filter(ch => ch.number < chapter.number)
+      .sort((a, b) => a.number - b.number);
+
+    return this.summarizeChapter(entries, previousChapters);
   }
 
   /**

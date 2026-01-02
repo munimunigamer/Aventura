@@ -1,0 +1,63 @@
+<script lang="ts">
+  import type { StoryEntry } from '$lib/types';
+  import { slide } from 'svelte/transition';
+  import { MessageSquare, Scroll } from 'lucide-svelte';
+
+  interface Props {
+    entries: StoryEntry[];
+    expanded: boolean;
+  }
+
+  let { entries, expanded }: Props = $props();
+
+  function truncate(text: string, maxLength: number = 100): string {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trim() + '...';
+  }
+
+  function getEntryIcon(type: StoryEntry['type']) {
+    switch (type) {
+      case 'user_action':
+        return MessageSquare;
+      case 'narration':
+        return Scroll;
+      default:
+        return Scroll;
+    }
+  }
+
+  function getEntryLabel(type: StoryEntry['type']): string {
+    switch (type) {
+      case 'user_action':
+        return 'ACTION';
+      case 'narration':
+        return 'NARRATIVE';
+      default:
+        return 'ENTRY';
+    }
+  }
+</script>
+
+{#if expanded && entries.length > 0}
+  <div class="mt-2 space-y-1 pl-2 border-l-2 border-surface-700" transition:slide={{ duration: 200 }}>
+    {#each entries.slice(0, 10) as entry}
+      {@const Icon = getEntryIcon(entry.type)}
+      <div class="flex items-start gap-2 py-1 text-xs">
+        <div
+          class="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium {entry.type === 'user_action' ? 'bg-blue-900/30 text-blue-400' : 'bg-purple-900/30 text-purple-400'}"
+        >
+          <Icon class="h-3 w-3" />
+          <span>{getEntryLabel(entry.type)}</span>
+        </div>
+        <span class="text-surface-400 leading-relaxed">
+          {truncate(entry.content, 120)}
+        </span>
+      </div>
+    {/each}
+    {#if entries.length > 10}
+      <div class="text-xs text-surface-500 py-1">
+        ... {entries.length - 10} more entries
+      </div>
+    {/if}
+  </div>
+{/if}

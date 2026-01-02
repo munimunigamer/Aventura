@@ -349,7 +349,7 @@ export interface AgenticSession {
 }
 
 // UI State types
-export type ActivePanel = 'story' | 'library' | 'settings' | 'templates' | 'lorebook';
+export type ActivePanel = 'story' | 'library' | 'settings' | 'templates' | 'lorebook' | 'memory';
 export type SidebarTab = 'characters' | 'locations' | 'inventory' | 'quests';
 
 export interface UIState {

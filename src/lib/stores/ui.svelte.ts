@@ -60,6 +60,15 @@ class UIStore {
   // Mobile: track if we're viewing detail (for stacked navigation)
   lorebookShowDetail = $state(false);
 
+  // Memory panel state
+  memoryEditingChapterId = $state<string | null>(null);
+  memoryExpandedChapterId = $state<string | null>(null);
+  memorySettingsOpen = $state(false);
+  manualChapterModalOpen = $state(false);
+  resummarizeModalOpen = $state(false);
+  resummarizeChapterId = $state<string | null>(null);
+  memoryLoading = $state(false);
+
   // Lore management mode state
   // When active, the AI is reviewing/updating the lorebook - user editing is locked
   loreManagementActive = $state(false);
@@ -337,6 +346,51 @@ class UIStore {
     this.lorebookBulkSelection = new Set();
     this.lorebookSearchQuery = '';
     this.lorebookShowDetail = false;
+  }
+
+  // Memory panel methods
+  setMemoryEditingChapter(id: string | null) {
+    this.memoryEditingChapterId = id;
+  }
+
+  toggleChapterExpanded(id: string) {
+    this.memoryExpandedChapterId = this.memoryExpandedChapterId === id ? null : id;
+  }
+
+  toggleMemorySettings() {
+    this.memorySettingsOpen = !this.memorySettingsOpen;
+  }
+
+  openManualChapterModal() {
+    this.manualChapterModalOpen = true;
+  }
+
+  closeManualChapterModal() {
+    this.manualChapterModalOpen = false;
+  }
+
+  openResummarizeModal(chapterId: string) {
+    this.resummarizeChapterId = chapterId;
+    this.resummarizeModalOpen = true;
+  }
+
+  closeResummarizeModal() {
+    this.resummarizeModalOpen = false;
+    this.resummarizeChapterId = null;
+  }
+
+  setMemoryLoading(loading: boolean) {
+    this.memoryLoading = loading;
+  }
+
+  resetMemoryPanel() {
+    this.memoryEditingChapterId = null;
+    this.memoryExpandedChapterId = null;
+    this.memorySettingsOpen = false;
+    this.manualChapterModalOpen = false;
+    this.resummarizeModalOpen = false;
+    this.resummarizeChapterId = null;
+    this.memoryLoading = false;
   }
 
   // Activation tracking methods for lorebook stickiness

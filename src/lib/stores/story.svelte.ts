@@ -908,6 +908,107 @@ class StoryStore {
     return await database.getNextChapterNumber(this.currentStory.id);
   }
 
+  // Update a chapter's summary
+  async updateChapterSummary(chapterId: string, summary: string): Promise<void> {
+    if (!this.currentStory) throw new Error('No story loaded');
+
+    await database.updateChapter(chapterId, { summary });
+    this.chapters = this.chapters.map(ch =>
+      ch.id === chapterId ? { ...ch, summary } : ch
+    );
+    log('Chapter summary updated:', chapterId);
+  }
+
+  // Update a chapter with multiple fields
+  async updateChapter(chapterId: string, updates: Partial<Chapter>): Promise<void> {
+    if (!this.currentStory) throw new Error('No story loaded');
+
+    await database.updateChapter(chapterId, updates);
+    this.chapters = this.chapters.map(ch =>
+      ch.id === chapterId ? { ...ch, ...updates } : ch
+    );
+    log('Chapter updated:', chapterId, updates);
+  }
+
+  // Get entries for a specific chapter
+  getChapterEntries(chapter: Chapter): StoryEntry[] {
+    const startIdx = this.entries.findIndex(e => e.id === chapter.startEntryId);
+    const endIdx = this.entries.findIndex(e => e.id === chapter.endEntryId);
+    if (startIdx === -1 || endIdx === -1) return [];
+    return this.entries.slice(startIdx, endIdx + 1);
+  }
+
+  // Delete a chapter
+  async deleteChapter(chapterId: string): Promise<void> {
+    if (!this.currentStory) throw new Error('No story loaded');
+
+    await database.deleteChapter(chapterId);
+    this.chapters = this.chapters.filter(ch => ch.id !== chapterId);
+    log('Chapter deleted:', chapterId);
+  }
+
+  // Update memory configuration (partial updates)
+  async updateMemoryConfig(updates: Partial<MemoryConfig>): Promise<void> {
+    if (!this.currentStory) throw new Error('No story loaded');
+
+    const newConfig = { ...this.memoryConfig, ...updates };
+    await database.updateStory(this.currentStory.id, { memoryConfig: newConfig });
+    this.currentStory = { ...this.currentStory, memoryConfig: newConfig };
+    log('Memory config updated via updateMemoryConfig:', updates);
+  }
+
+  // Create a manual chapter at a specific entry index
+  async createManualChapter(endEntryIndex: number): Promise<void> {
+    if (!this.currentStory) throw new Error('No story loaded');
+
+    // Find the start index (after the last chapter or beginning)
+    const startIndex = this.lastChapterEndIndex;
+
+    // Validate the end index
+    if (endEntryIndex <= startIndex || endEntryIndex > this.entries.length) {
+      throw new Error('Invalid entry index for chapter creation');
+    }
+
+    // Get the entries for this chapter
+    const chapterEntries = this.entries.slice(startIndex, endEntryIndex);
+    if (chapterEntries.length === 0) {
+      throw new Error('No entries to create chapter from');
+    }
+
+    // Get previous chapters for context
+    const previousChapters = [...this.chapters].sort((a, b) => a.number - b.number);
+
+    // Import aiService dynamically to avoid circular dependency
+    const { aiService } = await import('$lib/services/ai');
+
+    // Generate summary with previous chapters as context
+    const chapterData = await aiService.summarizeChapter(chapterEntries, previousChapters);
+
+    // Get the next chapter number
+    const chapterNumber = await this.getNextChapterNumber();
+
+    // Create the chapter
+    const chapter: Chapter = {
+      id: crypto.randomUUID(),
+      storyId: this.currentStory.id,
+      number: chapterNumber,
+      title: chapterData.title,
+      startEntryId: chapterEntries[0].id,
+      endEntryId: chapterEntries[chapterEntries.length - 1].id,
+      entryCount: chapterEntries.length,
+      summary: chapterData.summary,
+      keywords: chapterData.keywords,
+      characters: chapterData.characters,
+      locations: chapterData.locations,
+      plotThreads: chapterData.plotThreads,
+      emotionalTone: chapterData.emotionalTone,
+      createdAt: Date.now(),
+    };
+
+    await this.addChapter(chapter);
+    log('Manual chapter created:', chapter.number, chapter.title);
+  }
+
   // Create a checkpoint (snapshot of current state)
   async createCheckpoint(name: string): Promise<Checkpoint> {
     if (!this.currentStory) throw new Error('No story loaded');
