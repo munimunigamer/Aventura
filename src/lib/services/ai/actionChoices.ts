@@ -36,16 +36,15 @@ export class ActionChoicesService {
   }
 
   private get model(): string {
-    // Use the same model as suggestions by default
-    return settings.systemServicesSettings.suggestions.model;
+    return settings.systemServicesSettings.actionChoices.model;
   }
 
   private get temperature(): number {
-    return 0.8; // Slightly higher for variety in choices
+    return settings.systemServicesSettings.actionChoices.temperature;
   }
 
   private get maxTokens(): number {
-    return 500;
+    return settings.systemServicesSettings.actionChoices.maxTokens;
   }
 
   /**

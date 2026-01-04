@@ -366,7 +366,7 @@ class AIService {
       lorebookEntriesCount: lorebookEntries?.length ?? 0,
     });
 
-    const provider = this.getProviderForProfile(settings.systemServicesSettings.suggestions.profileId);
+    const provider = this.getProviderForProfile(settings.systemServicesSettings.actionChoices.profileId);
     const suggestions = new SuggestionsService(provider);
     return await suggestions.generateSuggestions(entries, activeThreads, genre, lorebookEntries);
   }

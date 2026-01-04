@@ -483,6 +483,33 @@ export function getDefaultSuggestionsSettingsForProvider(provider: ProviderPrese
   };
 }
 
+// Action choices settings (RPG-style choices for adventure mode)
+export interface ActionChoicesSettings {
+  profileId: string | null;  // API profile to use (null = use default profile)
+  model: string;
+  temperature: number;
+  maxTokens: number;
+}
+
+export function getDefaultActionChoicesSettings(): ActionChoicesSettings {
+  return {
+    profileId: DEFAULT_OPENROUTER_PROFILE_ID,
+    model: 'deepseek/deepseek-v3.2',
+    temperature: 0.8,
+    maxTokens: 8192,
+  };
+}
+
+export function getDefaultActionChoicesSettingsForProvider(provider: ProviderPreset): ActionChoicesSettings {
+  const profileId = provider === 'nanogpt' ? DEFAULT_NANOGPT_PROFILE_ID : DEFAULT_OPENROUTER_PROFILE_ID;
+  return {
+    profileId,
+    model: 'deepseek/deepseek-v3.2',
+    temperature: 0.8,
+    maxTokens: 8192,
+  };
+}
+
 // Style reviewer service settings
 export interface StyleReviewerSettings {
   profileId: string | null;  // API profile to use (null = use default profile)
@@ -713,6 +740,7 @@ export interface SystemServicesSettings {
   lorebookClassifier: LorebookClassifierSettings;
   memory: MemorySettings;
   suggestions: SuggestionsSettings;
+  actionChoices: ActionChoicesSettings;
   styleReviewer: StyleReviewerSettings;
   loreManagement: LoreManagementSettings;
   agenticRetrieval: AgenticRetrievalSettings;
@@ -726,6 +754,7 @@ export function getDefaultSystemServicesSettings(): SystemServicesSettings {
     lorebookClassifier: getDefaultLorebookClassifierSettings(),
     memory: getDefaultMemorySettings(),
     suggestions: getDefaultSuggestionsSettings(),
+    actionChoices: getDefaultActionChoicesSettings(),
     styleReviewer: getDefaultStyleReviewerSettings(),
     loreManagement: getDefaultLoreManagementSettings(),
     agenticRetrieval: getDefaultAgenticRetrievalSettings(),
@@ -740,6 +769,7 @@ export function getDefaultSystemServicesSettingsForProvider(provider: ProviderPr
     lorebookClassifier: getDefaultLorebookClassifierSettingsForProvider(provider),
     memory: getDefaultMemorySettingsForProvider(provider),
     suggestions: getDefaultSuggestionsSettingsForProvider(provider),
+    actionChoices: getDefaultActionChoicesSettingsForProvider(provider),
     styleReviewer: getDefaultStyleReviewerSettingsForProvider(provider),
     loreManagement: getDefaultLoreManagementSettingsForProvider(provider),
     agenticRetrieval: getDefaultAgenticRetrievalSettingsForProvider(provider),
@@ -920,21 +950,42 @@ class SettingsStore {
       if (systemServicesJson) {
         try {
           const loaded = JSON.parse(systemServicesJson);
-          const defaults = getDefaultSystemServicesSettings();
+          const defaults = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
           this.systemServicesSettings = {
             classifier: { ...defaults.classifier, ...loaded.classifier },
             lorebookClassifier: { ...defaults.lorebookClassifier, ...loaded.lorebookClassifier },
             memory: { ...defaults.memory, ...loaded.memory },
             suggestions: { ...defaults.suggestions, ...loaded.suggestions },
+            actionChoices: { ...defaults.actionChoices, ...loaded.actionChoices },
             styleReviewer: { ...defaults.styleReviewer, ...loaded.styleReviewer },
             loreManagement: { ...defaults.loreManagement, ...loaded.loreManagement },
             agenticRetrieval: { ...defaults.agenticRetrieval, ...loaded.agenticRetrieval },
             timelineFill: { ...defaults.timelineFill, ...loaded.timelineFill },
             entryRetrieval: { ...defaults.entryRetrieval, ...loaded.entryRetrieval },
           };
+
+          const isMissingProfileId = (profileId: string | null | undefined): boolean => {
+            return profileId === null || profileId === undefined || profileId === '';
+          };
+          const suggestionsSettings = loaded?.suggestions ?? this.systemServicesSettings.suggestions;
+          const suggestionProfileId = suggestionsSettings?.profileId ?? this.systemServicesSettings.suggestions.profileId;
+          if (isMissingProfileId(this.systemServicesSettings.actionChoices.profileId) && suggestionProfileId) {
+            this.systemServicesSettings.actionChoices.profileId = suggestionProfileId;
+          }
+          if (!this.systemServicesSettings.actionChoices.model && suggestionsSettings?.model) {
+            this.systemServicesSettings.actionChoices.model = suggestionsSettings.model;
+          }
+          if (this.systemServicesSettings.actionChoices.temperature === undefined && suggestionsSettings?.temperature !== undefined) {
+            this.systemServicesSettings.actionChoices.temperature = suggestionsSettings.temperature;
+          }
+          if (this.systemServicesSettings.actionChoices.maxTokens === undefined && suggestionsSettings?.maxTokens !== undefined) {
+            this.systemServicesSettings.actionChoices.maxTokens = suggestionsSettings.maxTokens;
+          }
         } catch {
-          this.systemServicesSettings = getDefaultSystemServicesSettings();
+          this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
         }
+      } else {
+        this.systemServicesSettings = getDefaultSystemServicesSettingsForProvider(this.getEffectiveProvider());
       }
 
       // Load update settings
@@ -1166,6 +1217,11 @@ class SettingsStore {
       models.add(this.systemServicesSettings.suggestions.model);
     }
 
+    // Action Choices
+    if (this.systemServicesSettings.actionChoices.model) {
+      models.add(this.systemServicesSettings.actionChoices.model);
+    }
+
     // Style Reviewer
     if (this.systemServicesSettings.styleReviewer.model) {
       models.add(this.systemServicesSettings.styleReviewer.model);
@@ -1306,6 +1362,11 @@ class SettingsStore {
     }
     if (needsMigration(this.systemServicesSettings.suggestions.profileId)) {
       this.systemServicesSettings.suggestions.profileId = DEFAULT_OPENROUTER_PROFILE_ID;
+      needsSave = true;
+    }
+    if (needsMigration(this.systemServicesSettings.actionChoices.profileId)) {
+      this.systemServicesSettings.actionChoices.profileId = this.systemServicesSettings.suggestions.profileId
+        ?? DEFAULT_OPENROUTER_PROFILE_ID;
       needsSave = true;
     }
     if (needsMigration(this.systemServicesSettings.styleReviewer.profileId)) {
@@ -1461,6 +1522,11 @@ class SettingsStore {
 
   async resetSuggestionsSettings() {
     this.systemServicesSettings.suggestions = getDefaultSuggestionsSettingsForProvider(this.getEffectiveProvider());
+    await this.saveSystemServicesSettings();
+  }
+
+  async resetActionChoicesSettings() {
+    this.systemServicesSettings.actionChoices = getDefaultActionChoicesSettingsForProvider(this.getEffectiveProvider());
     await this.saveSystemServicesSettings();
   }
 

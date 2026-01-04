@@ -7,7 +7,7 @@
     type AdvancedWizardSettings,
     SCENARIO_MODEL,
   } from '$lib/services/ai/scenario';
-  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen } from 'lucide-svelte';
+  import { X, Key, Cpu, Palette, RefreshCw, Search, Settings2, RotateCcw, ChevronDown, ChevronUp, Brain, BookOpen, Lightbulb, Sparkles, Clock, Download, Loader2, Save, FolderOpen, ListChecks } from 'lucide-svelte';
   import { ask } from '@tauri-apps/plugin-dialog';
   import ProfileModal from './ProfileModal.svelte';
   import ModelSelector from './ModelSelector.svelte';
@@ -23,6 +23,7 @@
   let showClassifierSection = $state(false);
   let showMemorySection = $state(false);
   let showSuggestionsSection = $state(false);
+  let showActionChoicesSection = $state(false);
   let showStyleReviewerSection = $state(false);
   let showEntryRetrievalSection = $state(false);
   let showTimelineFillSection = $state(false);
@@ -1444,6 +1445,93 @@
                       {settings.systemServicesSettings.suggestions.systemPrompt.slice(0, 100)}...
                     </p>
                   {/if}
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Action Choices Section -->
+          <div class="border-t border-surface-700 pt-3">
+            <div class="flex items-center justify-between">
+              <button
+                class="flex items-center gap-2 text-left flex-1"
+                onclick={() => showActionChoicesSection = !showActionChoicesSection}
+              >
+                <ListChecks class="h-4 w-4 text-emerald-400" />
+                <div>
+                  <h3 class="text-sm font-medium text-surface-200">Action Choices</h3>
+                  <p class="text-xs text-surface-500">RPG-style options for adventure mode</p>
+                </div>
+              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1"
+                  onclick={() => settings.resetActionChoicesSettings()}
+                >
+                  <RotateCcw class="h-3 w-3" />
+                  Reset
+                </button>
+                <button onclick={() => showActionChoicesSection = !showActionChoicesSection}>
+                  {#if showActionChoicesSection}
+                    <ChevronUp class="h-4 w-4 text-surface-400" />
+                  {:else}
+                    <ChevronDown class="h-4 w-4 text-surface-400" />
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if showActionChoicesSection}
+              <div class="mt-3 space-y-3">
+                <div class="card bg-surface-900 p-3">
+                  <!-- Profile and Model Selector -->
+                  <div class="mb-3">
+                    <ModelSelector
+                      profileId={settings.systemServicesSettings.actionChoices.profileId}
+                      model={settings.systemServicesSettings.actionChoices.model}
+                      onProfileChange={(id) => {
+                        settings.systemServicesSettings.actionChoices.profileId = id;
+                        settings.saveSystemServicesSettings();
+                      }}
+                      onModelChange={(m) => {
+                        settings.systemServicesSettings.actionChoices.model = m;
+                        settings.saveSystemServicesSettings();
+                      }}
+                      onManageProfiles={() => { showProfileModal = true; editingProfile = null; }}
+                    />
+                  </div>
+
+                  <!-- Temperature -->
+                  <div class="mb-3">
+                    <label class="mb-1 block text-xs font-medium text-surface-400">
+                      Temperature: {settings.systemServicesSettings.actionChoices.temperature.toFixed(2)}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      bind:value={settings.systemServicesSettings.actionChoices.temperature}
+                      onchange={() => settings.saveSystemServicesSettings()}
+                      class="w-full h-2"
+                    />
+                  </div>
+
+                  <!-- Max Tokens -->
+                  <div class="mb-3">
+                    <label class="mb-1 block text-xs font-medium text-surface-400">
+                      Max Tokens: {settings.systemServicesSettings.actionChoices.maxTokens}
+                    </label>
+                    <input
+                      type="range"
+                      min="500"
+                      max="8192"
+                      step="128"
+                      bind:value={settings.systemServicesSettings.actionChoices.maxTokens}
+                      onchange={() => settings.saveSystemServicesSettings()}
+                      class="w-full h-2"
+                    />
+                  </div>
                 </div>
               </div>
             {/if}
