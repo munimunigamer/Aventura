@@ -2,6 +2,7 @@
  * Character Card Importer Service
  *
  * Imports SillyTavern character cards (V1/V2 JSON format) into Aventura's wizard.
+ * Supports both JSON files and PNG files with embedded character data.
  * Converts character cards into scenario settings with the card character as an NPC.
  */
 
@@ -17,6 +18,131 @@ function log(...args: any[]) {
   if (DEBUG) {
     console.log('[CharacterCardImporter]', ...args);
   }
+}
+
+// ===== PNG Metadata Extraction =====
+
+/**
+ * PNG signature bytes
+ */
+const PNG_SIGNATURE = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+/**
+ * Check if the data is a PNG file by examining the signature
+ */
+export function isPngFile(data: ArrayBuffer | Uint8Array): boolean {
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  if (bytes.length < 8) return false;
+  
+  for (let i = 0; i < 8; i++) {
+    if (bytes[i] !== PNG_SIGNATURE[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Extract character card JSON from PNG metadata.
+ * SillyTavern embeds character data in a tEXt chunk with keyword "chara",
+ * containing base64-encoded JSON.
+ * 
+ * @param data - PNG file data as ArrayBuffer or Uint8Array
+ * @returns The decoded JSON string, or null if not found
+ */
+export function extractCharacterCardFromPng(data: ArrayBuffer | Uint8Array): string | null {
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  
+  if (!isPngFile(bytes)) {
+    log('Not a valid PNG file');
+    return null;
+  }
+  
+  // Skip PNG signature (8 bytes)
+  let offset = 8;
+  
+  while (offset < bytes.length) {
+    // Read chunk length (4 bytes, big-endian)
+    if (offset + 4 > bytes.length) break;
+    const length = (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+    offset += 4;
+    
+    // Read chunk type (4 bytes)
+    if (offset + 4 > bytes.length) break;
+    const type = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+    offset += 4;
+    
+    // Check if this is a tEXt chunk
+    if (type === 'tEXt') {
+      // Read chunk data
+      if (offset + length > bytes.length) break;
+      const chunkData = bytes.slice(offset, offset + length);
+      
+      // tEXt format: keyword (null-terminated) + text
+      // Find the null separator
+      let nullIndex = -1;
+      for (let i = 0; i < chunkData.length; i++) {
+        if (chunkData[i] === 0) {
+          nullIndex = i;
+          break;
+        }
+      }
+      
+      if (nullIndex > 0) {
+        const keyword = new TextDecoder('latin1').decode(chunkData.slice(0, nullIndex));
+        
+        // Check if this is the "chara" chunk
+        if (keyword.toLowerCase() === 'chara') {
+          const textData = chunkData.slice(nullIndex + 1);
+          const base64String = new TextDecoder('latin1').decode(textData);
+          
+          try {
+            // Decode base64 to get JSON
+            const jsonString = atob(base64String);
+            log('Found character data in PNG tEXt chunk');
+            return jsonString;
+          } catch (e) {
+            log('Failed to decode base64 character data:', e);
+            return null;
+          }
+        }
+      }
+    }
+    
+    // Skip chunk data and CRC (4 bytes)
+    offset += length + 4;
+    
+    // Stop at IEND chunk
+    if (type === 'IEND') break;
+  }
+  
+  log('No character data found in PNG');
+  return null;
+}
+
+/**
+ * Read a file and extract character card JSON.
+ * Handles both JSON files (direct text) and PNG files (embedded metadata).
+ * 
+ * @param file - The file to read
+ * @returns The JSON string containing character card data
+ */
+export async function readCharacterCardFile(file: File): Promise<string> {
+  const fileName = file.name.toLowerCase();
+  
+  if (fileName.endsWith('.png')) {
+    log('Reading PNG file:', file.name);
+    const arrayBuffer = await file.arrayBuffer();
+    const jsonString = extractCharacterCardFromPng(arrayBuffer);
+    
+    if (!jsonString) {
+      throw new Error('No character data found in PNG file. The image may not be a valid SillyTavern character card.');
+    }
+    
+    return jsonString;
+  }
+  
+  // Assume JSON for other files
+  log('Reading JSON file:', file.name);
+  return await file.text();
 }
 
 // ===== SillyTavern Card Types =====

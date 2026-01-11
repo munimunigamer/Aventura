@@ -21,6 +21,7 @@ import {
   } from '$lib/services/lorebookImporter';
   import {
     convertCardToScenario,
+    readCharacterCardFile,
     type CardImportResult,
   } from '$lib/services/characterCardImporter';
   import type { StoryMode, POV, EntryType } from '$lib/types';
@@ -694,7 +695,8 @@ function clearImport() {
     isImportingCard = true;
 
     try {
-      const content = await file.text();
+      // Read the file (handles both JSON and PNG formats)
+      const content = await readCharacterCardFile(file);
       const result = await convertCardToScenario(
         content,
         selectedMode,
@@ -1089,12 +1091,12 @@ function clearImport() {
               {/if}
             </div>
             <p class="text-xs text-surface-500">
-              Import a SillyTavern character card (.json) to generate a setting with the character as an NPC.
+              Import a SillyTavern character card (.json or .png) to generate a setting with the character as an NPC.
             </p>
             <div class="flex items-center gap-2">
               <input
                 type="file"
-                accept=".json"
+                accept=".json,.png,application/json,image/png"
                 class="hidden"
                 bind:this={cardImportFileInput}
                 onchange={handleCardImport}
