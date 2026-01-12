@@ -3799,7 +3799,7 @@
                   <input
                     type="range"
                     min="512"
-                    max="4096"
+                    max="16384"
                     step="256"
                     bind:value={settings.systemServicesSettings.imageGeneration.promptMaxTokens}
                     onchange={() => settings.saveSystemServicesSettings()}

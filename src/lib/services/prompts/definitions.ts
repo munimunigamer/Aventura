@@ -479,6 +479,7 @@ export const CONTEXT_PLACEHOLDERS: ContextPlaceholder[] = [
   { id: 'max-images', name: 'Max Images', token: 'maxImages', category: 'other', description: 'Maximum number of images to generate (0 = unlimited)' },
   { id: 'image-style-prompt', name: 'Image Style Prompt', token: 'imageStylePrompt', category: 'other', description: 'Style guidelines for image generation (anime, photorealistic, etc.)' },
   { id: 'character-descriptors', name: 'Character Descriptors', token: 'characterDescriptors', category: 'other', description: 'Visual appearance descriptors for characters in the scene' },
+  { id: 'visual-descriptors', name: 'Visual Descriptors', token: 'visualDescriptors', category: 'other', description: 'Comma-separated visual appearance details for a single character (hair, eyes, clothing, etc.)' },
   { id: 'chat-history', name: 'Chat History', token: 'chatHistory', category: 'story', description: 'Full untruncated chat history for comprehensive context' },
   { id: 'lorebook-context', name: 'Lorebook Context', token: 'lorebookContext', category: 'story', description: 'Activated lorebook entries for world and character context' },
 ];
@@ -1758,9 +1759,9 @@ When a NEW named character is introduced who does NOT have a portrait yet (not i
 4. **Style keywords** - copy relevant phrases from the Style section
 
 ## Prompt Structure (for portrait generation - generatePortrait: true)
-1. **Character appearance** - use visual descriptors to describe hair, eyes, skin, features
+1. **Character appearance** - use visual descriptors to describe hair, eyes, skin, features, clothing
 2. **Expression** - neutral or slight smile
-3. **Framing** - head and shoulders, portrait composition
+3. **Framing** - FULL BODY portrait, head to feet visible, standing in relaxed natural pose
 4. **Background** - simple, neutral (gradient or soft bokeh)
 5. **Style keywords** - from the Style section
 
@@ -1776,9 +1777,9 @@ When a NEW named character is introduced who does NOT have a portrait yet (not i
   "generatePortrait": false
 }
 
-**Creating portrait for NEW character:**
+**Creating FULL BODY portrait for NEW character:**
 {
-  "prompt": "Portrait of a tall man with short grey hair and weathered face, deep-set brown eyes with crow's feet. Strong jaw, slight stubble. Wearing dark leather armor. Head and shoulders, neutral background with soft blue gradient. Semi-realistic anime style, refined features.",
+  "prompt": "Full body portrait of a tall man with short grey hair and weathered face, deep-set brown eyes with crow's feet. Strong jaw, slight stubble. Wearing dark leather armor over a grey tunic, leather boots. Standing in relaxed pose facing viewer, full body visible head to feet. Neutral background with soft blue gradient. Semi-realistic anime style, refined features.",
   "sourceText": "the old mercenary stepped forward",
   "sceneType": "character",
   "priority": 7,
