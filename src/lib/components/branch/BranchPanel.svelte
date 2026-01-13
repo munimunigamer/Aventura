@@ -1,5 +1,6 @@
 <script lang="ts">
   import { story } from '$lib/stores/story.svelte';
+  import { ask } from '@tauri-apps/plugin-dialog';
   import { GitBranch, ChevronRight, ChevronDown, Plus, Trash2, Edit2, Check, X } from 'lucide-svelte';
   import type { Branch, Checkpoint } from '$lib/types';
 
@@ -61,9 +62,11 @@
   }
 
   async function handleDeleteBranch(branchId: string) {
-    if (!confirm('Are you sure you want to delete this branch? This will delete all entries in the branch.')) {
-      return;
-    }
+    const confirmed = await ask(
+      'Are you sure you want to delete this branch? This will delete all entries in the branch.',
+      { title: 'Delete Branch', kind: 'warning' }
+    );
+    if (!confirmed) return;
     try {
       await story.deleteBranch(branchId);
     } catch (error) {

@@ -2024,9 +2024,17 @@ class StoryStore {
       await database.addLocation(branchLoc);
     }
 
-    // Copy items
+    // Copy items (remap location IDs to the new branch's locations)
     for (const item of checkpoint.itemsSnapshot) {
-      const branchItem: Item = { ...item, id: crypto.randomUUID(), branchId: branch.id };
+      const remappedLocation = item.location === 'inventory'
+        ? 'inventory'
+        : (locationIdMap.get(item.location) ?? item.location);
+      const branchItem: Item = {
+        ...item,
+        id: crypto.randomUUID(),
+        branchId: branch.id,
+        location: remappedLocation,
+      };
       await database.addItem(branchItem);
     }
 
