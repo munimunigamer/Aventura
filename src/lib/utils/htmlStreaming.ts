@@ -1,5 +1,8 @@
+import { scopeCssSelectors } from './cssScope';
+
 /**
  * StreamingHtmlRenderer - Handles incremental HTML parsing for Visual Prose Mode.
+
  *
  * Features:
  * - Buffers incomplete HTML tags until complete
@@ -98,76 +101,14 @@ export class StreamingHtmlRenderer {
   private scopeCss(html: string): string {
     // Find all <style>...</style> blocks and prefix selectors
     return html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attrs, css) => {
-      const scopedCss = this.prefixCssSelectors(css);
+      const scopedCss = scopeCssSelectors(css, this.scopeClass);
       return `<style${attrs}>${scopedCss}</style>`;
-    });
-  }
-
-  private prefixCssSelectors(css: string): string {
-    // Handle @keyframes specially - don't prefix the keyframe name
-    let result = css;
-
-    // Process @keyframes blocks - extract and preserve them
-    const keyframesBlocks: string[] = [];
-    result = result.replace(/@keyframes\s+([^\s{]+)\s*\{([\s\S]*?\})\s*\}/gi, (match) => {
-      keyframesBlocks.push(match);
-      return `__KEYFRAMES_${keyframesBlocks.length - 1}__`;
-    });
-
-    // Process @media queries - scope selectors inside them
-    result = result.replace(/@media\s+([^{]+)\{([\s\S]*?)\}/gi, (_match, query, content) => {
-      const scopedContent = this.prefixSelectorsInBlock(content);
-      return `@media ${query}{${scopedContent}}`;
-    });
-
-    // Process regular CSS rules (outside of @-rules)
-    result = this.prefixSelectorsInBlock(result);
-
-    // Restore keyframes blocks
-    keyframesBlocks.forEach((block, index) => {
-      result = result.replace(`__KEYFRAMES_${index}__`, block);
-    });
-
-    return result;
-  }
-
-  private prefixSelectorsInBlock(css: string): string {
-    // Match selector { properties } patterns
-    return css.replace(/([^{}@]+?)(\{[^{}]*\})/g, (match, selectors, block) => {
-      const trimmedSelectors = selectors.trim();
-
-      // Skip if empty or starts with @ (already handled)
-      if (!trimmedSelectors || trimmedSelectors.startsWith('@') || trimmedSelectors.startsWith('__KEYFRAMES_')) {
-        return match;
-      }
-
-      // Skip percentage selectors (keyframe steps like "0%", "100%")
-      if (/^\d+%$/.test(trimmedSelectors) || trimmedSelectors === 'from' || trimmedSelectors === 'to') {
-        return match;
-      }
-
-      // Prefix each selector
-      const prefixedSelectors = selectors
-        .split(',')
-        .map((s: string) => {
-          const trimmed = s.trim();
-          if (!trimmed) return s;
-
-          // Handle :root specially
-          if (trimmed === ':root') {
-            return `.${this.scopeClass}`;
-          }
-
-          return `.${this.scopeClass} ${trimmed}`;
-        })
-        .join(', ');
-
-      return `${prefixedSelectors}${block}`;
     });
   }
 
   private getWrappedOutput(): string {
     // Wrap output in scoped container
+
     return `<div class="${this.scopeClass} visual-prose-entry">${this.safeHtml}</div>`;
   }
 }
