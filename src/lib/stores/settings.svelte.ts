@@ -888,9 +888,13 @@ export function getDefaultUpdateSettings(): UpdateSettings {
 }
 
 // Image Generation settings (automatic image generation for narrative)
+export type ImageProviderType = 'nanogpt' | 'chutes';
+
 export interface ImageGenerationServiceSettings {
   enabled: boolean;               // Toggle for image generation (default: false)
+  imageProvider: ImageProviderType; // Selected image provider (default: 'nanogpt')
   nanoGptApiKey: string;          // NanoGPT API key for image generation
+  chutesApiKey: string;           // Chutes API key for image generation
   model: string;                  // Image model (default: 'z-image-turbo')
   styleId: string;                // Selected image style template
   size: '512x512' | '1024x1024';  // Image size
@@ -900,7 +904,7 @@ export interface ImageGenerationServiceSettings {
   // Portrait mode settings (character reference images)
   portraitMode: boolean;          // Enable portrait reference mode (default: false)
   portraitModel: string;          // Model for generating character portraits (default: 'z-image-turbo')
-  referenceModel: string;         // Model for image generation with reference (default: 'qwen-image')
+  referenceModel: string;         // Model for image generation with reference (default: 'qwen-image' for nanogpt, 'qwen-image-edit-2511' for chutes)
 
   // Scene analysis model settings (for identifying imageable scenes)
   promptProfileId: string | null; // API profile for scene analysis
@@ -915,7 +919,9 @@ export interface ImageGenerationServiceSettings {
 export function getDefaultImageGenerationSettings(): ImageGenerationServiceSettings {
   return {
     enabled: false,
+    imageProvider: 'nanogpt',
     nanoGptApiKey: '',
+    chutesApiKey: '',
     model: 'z-image-turbo',
     styleId: 'image-style-soft-anime',
     size: '1024x1024',
@@ -925,10 +931,10 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
     portraitModel: 'z-image-turbo',
     referenceModel: 'qwen-image',
     promptProfileId: DEFAULT_OPENROUTER_PROFILE_ID,
-    promptModel: 'deepseek/deepseek-v3.2',
+    promptModel: 'x-ai/grok-4-fast',
     promptTemperature: 0.3,
     promptMaxTokens: 16384,
-    reasoningEffort: 'off',
+    reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
   };
@@ -936,10 +942,12 @@ export function getDefaultImageGenerationSettings(): ImageGenerationServiceSetti
 
 export function getDefaultImageGenerationSettingsForProvider(provider: ProviderPreset): ImageGenerationServiceSettings {
   const promptProfileId = provider === 'nanogpt' ? DEFAULT_NANOGPT_PROFILE_ID : DEFAULT_OPENROUTER_PROFILE_ID;
-  const promptModel = 'deepseek/deepseek-v3.2';
+  const promptModel = provider === 'nanogpt' ? 'deepseek/deepseek-v3.2' : 'x-ai/grok-4-fast';
   return {
     enabled: false,
+    imageProvider: 'nanogpt',
     nanoGptApiKey: '',  // Will be autofilled from NanoGPT profile if available
+    chutesApiKey: '',
     model: 'z-image-turbo',
     styleId: 'image-style-soft-anime',
     size: '1024x1024',
@@ -952,7 +960,7 @@ export function getDefaultImageGenerationSettingsForProvider(provider: ProviderP
     promptModel,
     promptTemperature: 0.3,
     promptMaxTokens: 16384,
-    reasoningEffort: 'off',
+    reasoningEffort: 'high',
     providerOnly: [],
     manualBody: '',
   };

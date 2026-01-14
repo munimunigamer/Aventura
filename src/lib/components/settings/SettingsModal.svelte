@@ -1361,7 +1361,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-medium text-surface-200">Automatic Image Generation</h3>
-                <p class="text-xs text-surface-500">Generate images for visually striking moments in the narrative using NanoGPT.</p>
+                <p class="text-xs text-surface-500">Generate images for visually striking moments in the narrative.</p>
               </div>
               <button
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
@@ -1383,39 +1383,87 @@
           </div>
 
           {#if settings.systemServicesSettings.imageGeneration.enabled}
-            <!-- NanoGPT API Key -->
+            <!-- Image Provider Selection -->
             <div class="space-y-2">
               <label class="text-sm font-medium text-surface-300">
-                NanoGPT API Key
+                Image Provider
               </label>
-              <p class="text-xs text-surface-500">API key for NanoGPT image generation.</p>
-              <div class="flex gap-2">
+              <p class="text-xs text-surface-500">Select the image generation service to use.</p>
+              <select
+                class="input input-sm w-full bg-surface-800 border-surface-600 text-surface-100"
+                value={settings.systemServicesSettings.imageGeneration.imageProvider ?? 'nanogpt'}
+                onchange={(e) => {
+                  const provider = e.currentTarget.value as 'nanogpt' | 'chutes';
+                  settings.systemServicesSettings.imageGeneration.imageProvider = provider;
+                  // Update default models based on provider
+                  if (provider === 'chutes') {
+                    settings.systemServicesSettings.imageGeneration.referenceModel = 'qwen-image-edit-2511';
+                  } else {
+                    settings.systemServicesSettings.imageGeneration.referenceModel = 'qwen-image';
+                  }
+                  settings.saveSystemServicesSettings();
+                }}
+              >
+                <option value="nanogpt">NanoGPT</option>
+                <option value="chutes">Chutes</option>
+              </select>
+            </div>
+
+            <!-- NanoGPT API Key (shown when NanoGPT is selected) -->
+            {#if (settings.systemServicesSettings.imageGeneration.imageProvider ?? 'nanogpt') === 'nanogpt'}
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-surface-300">
+                  NanoGPT API Key
+                </label>
+                <p class="text-xs text-surface-500">API key for NanoGPT image generation.</p>
+                <div class="flex gap-2">
+                  <input
+                    type="password"
+                    class="input input-sm flex-1 bg-surface-800 border-surface-600 text-surface-100"
+                    value={settings.systemServicesSettings.imageGeneration.nanoGptApiKey}
+                    oninput={(e) => {
+                      settings.systemServicesSettings.imageGeneration.nanoGptApiKey = e.currentTarget.value;
+                      settings.saveSystemServicesSettings();
+                    }}
+                    placeholder="Enter your NanoGPT API key"
+                  />
+                  {#if settings.apiSettings.profiles.some(p => p.baseUrl?.includes('nano-gpt.com') && p.apiKey)}
+                    <button
+                      class="btn btn-secondary text-xs whitespace-nowrap"
+                      onclick={() => {
+                        const nanoProfile = settings.apiSettings.profiles.find(p => p.baseUrl?.includes('nano-gpt.com') && p.apiKey);
+                        if (nanoProfile?.apiKey) {
+                          settings.systemServicesSettings.imageGeneration.nanoGptApiKey = nanoProfile.apiKey;
+                          settings.saveSystemServicesSettings();
+                        }
+                      }}
+                    >
+                      Autofill from Profile
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+
+            <!-- Chutes API Key (shown when Chutes is selected) -->
+            {#if settings.systemServicesSettings.imageGeneration.imageProvider === 'chutes'}
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-surface-300">
+                  Chutes API Key
+                </label>
+                <p class="text-xs text-surface-500">API key for Chutes image generation.</p>
                 <input
                   type="password"
-                  class="input input-sm flex-1 bg-surface-800 border-surface-600 text-surface-100"
-                  value={settings.systemServicesSettings.imageGeneration.nanoGptApiKey}
+                  class="input input-sm w-full bg-surface-800 border-surface-600 text-surface-100"
+                  value={settings.systemServicesSettings.imageGeneration.chutesApiKey}
                   oninput={(e) => {
-                    settings.systemServicesSettings.imageGeneration.nanoGptApiKey = e.currentTarget.value;
+                    settings.systemServicesSettings.imageGeneration.chutesApiKey = e.currentTarget.value;
                     settings.saveSystemServicesSettings();
                   }}
-                  placeholder="Enter your NanoGPT API key"
+                  placeholder="Enter your Chutes API key"
                 />
-                {#if settings.apiSettings.profiles.some(p => p.baseUrl?.includes('nano-gpt.com') && p.apiKey)}
-                  <button
-                    class="btn btn-secondary text-xs whitespace-nowrap"
-                    onclick={() => {
-                      const nanoProfile = settings.apiSettings.profiles.find(p => p.baseUrl?.includes('nano-gpt.com') && p.apiKey);
-                      if (nanoProfile?.apiKey) {
-                        settings.systemServicesSettings.imageGeneration.nanoGptApiKey = nanoProfile.apiKey;
-                        settings.saveSystemServicesSettings();
-                      }
-                    }}
-                  >
-                    Autofill from Profile
-                  </button>
-                {/if}
               </div>
-            </div>
+            {/if}
 
             <!-- Image Model (hidden when portrait mode is enabled) -->
             {#if !settings.systemServicesSettings.imageGeneration.portraitMode}
@@ -1423,7 +1471,7 @@
                 <label class="text-sm font-medium text-surface-300">
                   Image Model
                 </label>
-                <p class="text-xs text-surface-500">The NanoGPT image model to use.</p>
+                <p class="text-xs text-surface-500">The image model to use for generation.</p>
                 <input
                   type="text"
                   class="input input-sm w-full bg-surface-800 border-surface-600 text-surface-100"

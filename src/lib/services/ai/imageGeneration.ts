@@ -11,8 +11,10 @@
 
 import type { EmbeddedImage, Character } from '$lib/types';
 import type { OpenAIProvider } from './openrouter';
+import type { ImageProvider } from './imageProvider';
 import { ImagePromptService, type ImagePromptContext, type ImageableScene } from './imagePrompt';
 import { NanoGPTImageProvider } from './nanoGPTImageProvider';
+import { ChutesImageProvider } from './chutesImageProvider';
 import { database } from '$lib/services/database';
 import { promptService } from '$lib/services/prompts';
 import { settings } from '$lib/stores/settings.svelte';
@@ -43,7 +45,7 @@ export interface ImageGenerationContext {
 
 export class ImageGenerationService {
   private promptService: ImagePromptService;
-  private imageProvider: NanoGPTImageProvider | null = null;
+  private imageProvider: ImageProvider | null = null;
 
   constructor(provider: OpenAIProvider) {
     // Get prompt settings from image generation settings
@@ -64,8 +66,38 @@ export class ImageGenerationService {
     const imageSettings = settings.systemServicesSettings.imageGeneration;
     if (!imageSettings?.enabled) return false;
 
-    // Check if we have a NanoGPT API key
+    // Check if we have the appropriate API key for the selected provider
+    const provider = imageSettings.imageProvider ?? 'nanogpt';
+    if (provider === 'chutes') {
+      return !!imageSettings.chutesApiKey;
+    }
     return !!imageSettings.nanoGptApiKey;
+  }
+
+  /**
+   * Get the API key for the currently selected provider
+   */
+  private static getApiKey(): string {
+    const imageSettings = settings.systemServicesSettings.imageGeneration;
+    const provider = imageSettings.imageProvider ?? 'nanogpt';
+    if (provider === 'chutes') {
+      return imageSettings.chutesApiKey;
+    }
+    return imageSettings.nanoGptApiKey;
+  }
+
+  /**
+   * Create the appropriate image provider based on settings
+   */
+  private createImageProvider(): ImageProvider {
+    const imageSettings = settings.systemServicesSettings.imageGeneration;
+    const provider = imageSettings.imageProvider ?? 'nanogpt';
+    const apiKey = ImageGenerationService.getApiKey();
+
+    if (provider === 'chutes') {
+      return new ChutesImageProvider(apiKey, DEBUG);
+    }
+    return new NanoGPTImageProvider(apiKey, DEBUG);
   }
 
   /**
@@ -360,17 +392,17 @@ export class ImageGenerationService {
       }
 
       // Get API key from settings
-      const apiKey = imageSettings.nanoGptApiKey;
+      const apiKey = ImageGenerationService.getApiKey();
       if (!apiKey) {
-        throw new Error('No NanoGPT API key configured for portrait generation');
+        throw new Error('No API key configured for portrait generation');
       }
 
       // Create provider if needed
       if (!this.imageProvider) {
-        this.imageProvider = new NanoGPTImageProvider(apiKey);
+        this.imageProvider = this.createImageProvider();
       }
 
-      log('Generating portrait', { characterName, model: imageSettings.portraitModel });
+      log('Generating portrait', { characterName, model: imageSettings.portraitModel, provider: imageSettings.imageProvider ?? 'nanogpt' });
 
       // Generate portrait using portrait model
       const response = await this.imageProvider.generateImage({
@@ -425,14 +457,14 @@ export class ImageGenerationService {
       await database.updateEmbeddedImage(imageId, { status: 'generating' });
 
       // Get API key from settings
-      const apiKey = imageSettings.nanoGptApiKey;
+      const apiKey = ImageGenerationService.getApiKey();
       if (!apiKey) {
-        throw new Error('No NanoGPT API key configured for image generation');
+        throw new Error('No API key configured for image generation');
       }
 
       // Create provider if needed
       if (!this.imageProvider) {
-        this.imageProvider = new NanoGPTImageProvider(apiKey);
+        this.imageProvider = this.createImageProvider();
       }
 
       // Generate image
