@@ -3516,7 +3516,7 @@
                   <!-- Profile and Model Selector -->
                   <div class="mb-3">
                     <ModelSelector
-                      profileId={ils.profileId}
+                      profileId={ils.profileId ?? settings.apiSettings.mainNarrativeProfileId}
                       model={ils.model}
                       onProfileChange={(id) => {
                         if (!settings.systemServicesSettings.interactiveLorebook) {
