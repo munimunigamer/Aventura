@@ -531,6 +531,7 @@
 
     showSupportingVaultPicker = false;
     showSupportingCharacterForm = true;
+    useSupportingCharacterAsIs();
   }
 
   // Step 4: Elaborate on manual character input with AI
@@ -1397,6 +1398,7 @@
     }
 
     showScenarioVaultPicker = false;
+    useSettingAsIs();
   }
 
   async function handleSaveScenarioToVault() {
@@ -1468,6 +1470,8 @@
         settingSeed = result.settingSeed;
         // Clear any previous expanded setting since we have new content
         expandedSetting = null;
+        // Automatically use as-is
+        useSettingAsIs();
       }
 
       if (result.npcs && result.npcs.length > 0) {
@@ -2464,8 +2468,7 @@
               </p>
             {/if}
 
-            <!-- Supporting Characters (Creative Mode Only) -->
-            {#if selectedMode === "creative-writing"}
+            <!-- Supporting Characters -->
               <div class="space-y-3 pt-4 border-t border-surface-700">
                 <div class="flex items-center justify-between">
                   <h3 class="font-medium text-surface-100">Supporting Cast</h3>
@@ -2679,7 +2682,6 @@
                   </p>
                 {/if}
               </div>
-            {/if}
           {/if}
         </div>
       {:else if currentStep === 6}
