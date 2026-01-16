@@ -9,10 +9,10 @@ export class RisuRealmProvider implements DiscoveryProvider {
   id = 'risu_realm';
   name = 'RisuRealm';
   icon = 'https://realm.risuai.net/icon.png';
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character'];
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type !== 'character') {
+    if (type === 'lorebook') {
       return { cards: [], hasMore: false };
     }
 

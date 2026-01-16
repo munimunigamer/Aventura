@@ -1,16 +1,16 @@
 import type { DiscoveryCard, DiscoveryProvider, SearchOptions, SearchResult } from '../types';
-import { corsFetch } from '../utils';
+import { corsFetch, GENERIC_ICON } from '../utils';
 
 const PYGMALION_API_BASE = 'https://server.pygmalion.chat/galatea.v1.PublicCharacterService';
 
 export class PygmalionProvider implements DiscoveryProvider {
   id = 'pygmalion';
   name = 'Pygmalion.chat';
-  icon = 'https://pygmalion.chat/favicon.ico';
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character'];
+  icon = GENERIC_ICON;
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type !== 'character') {
+    if (type === 'lorebook') {
       return { cards: [], hasMore: false };
     }
 

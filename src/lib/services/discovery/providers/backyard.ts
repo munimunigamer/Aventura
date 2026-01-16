@@ -7,10 +7,10 @@ export class BackyardProvider implements DiscoveryProvider {
   id = 'backyard';
   name = 'Backyard.ai';
   icon = 'https://backyard.ai/favicon.png';
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character'];
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type !== 'character') {
+    if (type === 'lorebook') {
       return { cards: [], hasMore: false };
     }
 

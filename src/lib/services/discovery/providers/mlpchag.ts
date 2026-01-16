@@ -12,10 +12,10 @@ export class MlpchagProvider implements DiscoveryProvider {
   id = 'mlpchag';
   name = 'MLPChag';
   icon = GENERIC_ICON;
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character'];
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type !== 'character') {
+    if (type === 'lorebook') {
       return { cards: [], hasMore: false };
     }
 

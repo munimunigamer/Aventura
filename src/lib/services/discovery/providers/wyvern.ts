@@ -7,11 +7,9 @@ export class WyvernProvider implements DiscoveryProvider {
   id = 'wyvern';
   name = 'Wyvern Chat';
   icon = GENERIC_ICON; // Favicon is rate-limited/protected
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'lorebook'];
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'lorebook', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type === 'scenario') return { cards: [], hasMore: false };
-
     const endpoint = type === 'lorebook' ? 'lorebooks' : 'characters';
     const params = new URLSearchParams();
     
@@ -69,7 +67,7 @@ export class WyvernProvider implements DiscoveryProvider {
     };
   }
 
-  private transformCard(node: any, type: 'character' | 'lorebook'): DiscoveryCard {
+  private transformCard(node: any, type: 'character' | 'lorebook' | 'scenario'): DiscoveryCard {
     const creator = node.creator?.displayName || node.creator?.vanityUrl || 'Unknown';
     const isNsfw = node.rating === 'mature' || node.rating === 'explicit';
     
@@ -86,7 +84,7 @@ export class WyvernProvider implements DiscoveryProvider {
         rating: node.statistics_record?.likes || 0
       },
       source: 'wyvern',
-      type,
+      type: type === 'scenario' ? 'character' : type, // Normalize scenario to character for UI
       nsfw: isNsfw,
       raw: node
     };

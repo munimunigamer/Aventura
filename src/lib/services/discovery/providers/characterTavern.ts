@@ -7,10 +7,10 @@ export class CharacterTavernProvider implements DiscoveryProvider {
   id = 'character_tavern';
   name = 'Character Tavern';
   icon = 'https://character-tavern.com/favicon.png';
-  supports: ('character' | 'lorebook' | 'scenario')[] = ['character'];
+  supports: ('character' | 'lorebook' | 'scenario')[] = ['character', 'scenario'];
 
   async search(options: SearchOptions, type: 'character' | 'lorebook' | 'scenario'): Promise<SearchResult> {
-    if (type !== 'character') {
+    if (type === 'lorebook') {
       return { cards: [], hasMore: false };
     }
 
