@@ -1959,8 +1959,8 @@
                           <Loader2 class="h-4 w-4 animate-spin" />
                           Resetting...
                         {:else}
-                          <RotateCcw class="h-4 w-4" />
-                          Reset All
+                          <RotateCcw class="ml-2 h-4 w-4" />
+                          Reset
                         {/if}
                       </button>
                     </div>
