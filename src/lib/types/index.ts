@@ -638,6 +638,7 @@ export interface APISettings {
   activeProfileId: string | null;  // ID of profile being edited in API tab (UI state only)
   // Main narrative generation settings
   mainNarrativeProfileId: string;  // Profile used for main story generation
+  defaultProfileId?: string;       // Global default profile used as fallback
   defaultModel: string;
   temperature: number;
   maxTokens: number;
@@ -737,3 +738,17 @@ export interface ImageGenerationSettings {
   providerOnly: string[];
   manualBody: string;
 }
+
+export interface GenerationPreset {
+  id: string;
+  name: string;
+  description: string | null;
+  profileId: string | null; // API profile to use (null = use main narrative profile)
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  reasoningEffort: ReasoningEffort;
+  providerOnly: string[];
+  manualBody: string;
+}
+

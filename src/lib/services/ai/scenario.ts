@@ -26,6 +26,7 @@ export type Tense = 'past' | 'present';
 // Advanced settings for customizing generation processes
 export interface ProcessSettings {
   profileId?: string | null;  // API profile to use (null = use default profile)
+  presetId?: string;  // Agent profile preset ID
   model?: string;
   systemPrompt?: string;
   temperature?: number;
@@ -244,14 +245,27 @@ export function getDefaultAdvancedSettings(): AdvancedWizardSettings {
   };
 }
 
-export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset): AdvancedWizardSettings {
+export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset, customModel?: string | null): AdvancedWizardSettings {
   const profileId = provider === 'nanogpt' ? DEFAULT_NANOGPT_PROFILE_ID : DEFAULT_OPENROUTER_PROFILE_ID;
-  // NanoGPT uses zai-org/ prefix and :thinking suffix for opening generation
-  const openingModel = provider === 'nanogpt' ? 'zai-org/glm-4.7:thinking' : 'z-ai/glm-4.7';
+  
+  // For custom provider, use provided model or fall back to placeholder
+  let generalModel: string;
+  let openingModel: string;
+  
+  if (provider === 'custom') {
+    generalModel = customModel || 'gpt-4o-mini';
+    openingModel = customModel || 'gpt-4o-mini';
+  } else {
+    generalModel = 'deepseek/deepseek-v3.2';
+    // NanoGPT uses zai-org/ prefix and :thinking suffix for opening generation
+    openingModel = provider === 'nanogpt' ? 'zai-org/glm-4.7:thinking' : 'z-ai/glm-4.7';
+  }
+
   return {
     settingExpansion: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.settingExpansion,
       temperature: 0.3,
       topP: 0.95,
@@ -261,8 +275,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     settingRefinement: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
       temperature: 0.3,
       topP: 0.95,
@@ -272,8 +287,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     protagonistGeneration: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.protagonistGeneration,
       temperature: 0.3,
       topP: 0.95,
@@ -283,8 +299,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     characterElaboration: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.characterElaboration,
       temperature: 0.3,
       topP: 0.95,
@@ -294,8 +311,9 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     characterRefinement: {
-      profileId,
-      model: 'deepseek/deepseek-v3.2',
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
       temperature: 0.3,
       topP: 0.95,
@@ -305,20 +323,23 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     supportingCharacters: {
-      profileId,
-      model: SCENARIO_MODEL,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: DEFAULT_PROMPTS.supportingCharacters,
       temperature: 0.3,
+      topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: 'off',
       providerOnly: [],
       manualBody: '',
     },
     openingGeneration: {
-      profileId,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
       model: openingModel,
-      systemPrompt: '',
-      temperature: 0.8,
+      systemPrompt: DEFAULT_PROMPTS.openingGeneration,
+      temperature: 0.3,
       topP: 0.95,
       maxTokens: 8192,
       reasoningEffort: 'high',
@@ -326,13 +347,14 @@ export function getDefaultAdvancedSettingsForProvider(provider: ProviderPreset):
       manualBody: '',
     },
     openingRefinement: {
-      profileId,
-      model: openingModel,
+      presetId: 'wizard',
+      profileId: provider === 'custom' ? null : profileId,
+      model: generalModel,
       systemPrompt: '',
-      temperature: 0.8,
+      temperature: 0.3,
       topP: 0.95,
       maxTokens: 8192,
-      reasoningEffort: 'high',
+      reasoningEffort: 'off',
       providerOnly: [],
       manualBody: '',
     },

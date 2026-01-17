@@ -59,6 +59,11 @@ class DatabaseService {
     );
   }
 
+  async deleteSetting(key: string): Promise<void> {
+    const db = await this.getDb();
+    await db.execute('DELETE FROM settings WHERE key = ?', [key]);
+  }
+
   // Story operations
   async getAllStories(): Promise<Story[]> {
     const db = await this.getDb();

@@ -30,13 +30,14 @@
   let customModels = $state<string[]>([]);
   let fetchedModels = $state<string[]>([]);
   let newModelInput = $state('');
+  let setAsDefault = $state(false);
 
   // UI state
   let isFetchingModels = $state(false);
   let fetchError = $state<string | null>(null);
   let showApiKey = $state(false);
   let abortController: AbortController | null = null;
-
+  
   // URL presets
   const urlPresets = [
     { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1' },
@@ -52,6 +53,7 @@
         apiKey = editingProfile.apiKey;
         customModels = [...editingProfile.customModels];
         fetchedModels = [...editingProfile.fetchedModels];
+        setAsDefault = editingProfile.id === settings.getDefaultProfileIdForProvider();
       } else {
         // Reset form for new profile - start with empty fields
         name = '';
@@ -59,6 +61,7 @@
         apiKey = '';  // API keys are not shared between profiles
         customModels = [];
         fetchedModels = [];
+        setAsDefault = false;
       }
       newModelInput = '';
       fetchError = null;
@@ -153,6 +156,12 @@
     };
 
     onSave(profile);
+    
+    if (setAsDefault) {
+      settings.setDefaultProfile(profile.id);
+    } else if (settings.apiSettings.defaultProfileId === profile.id) {
+      settings.setDefaultProfile(undefined);
+    }
   }
 
   async function handleDelete() {
@@ -203,6 +212,10 @@
             placeholder="e.g., OpenRouter, Local LLM"
             bind:value={name}
           />
+          <label class="checkbox-label mt-2">
+            <input type="checkbox" bind:checked={setAsDefault} />
+            <span>Set as System Default (Fallback)</span>
+          </label>
         </div>
 
         <!-- Base URL with presets -->
